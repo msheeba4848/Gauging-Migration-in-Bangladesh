@@ -3,3 +3,54 @@ title: "Untitled"
 format: html
 ---
 
+For the models 
+
+**Feature Selection Methods: Categorical**
+
+1. Chi Square Test 
+2. Mutual Information
+3. Gini Importance
+4. Fisher Score
+5. RFE
+
+Feature Selection Methods: Numerical
+
+1. Pearson Correlation
+2. Mutual Information
+3. ANOVA
+4. L1 (Lasso)
+
+**Feature Selection Methods: Other**
+
+After dropping the columns, we do regrex subsets and few of the data viz on basis of our assignments. See which one performs the best out of the three options and we do that
+
+**Models - Regression**
+
+1. Base Linear Regression (OLS)
+2. Ridge Regression 
+3. Lasso Regression
+4. Elastic Net Regression
+5. GLM or GAM (on basis of the distribution)
+6. Decision Tree (Base)
+7. Decision Tree (Hyperparameter Tuned using GridSearchCV)
+8. Random Forest (Base)
+9. Random Forest (Hyperparameter Tuned using GridSearchCV)
+10. Adaboost
+11. Gradient Boost
+12. XG Boost
+13. Stacked Model 
+
+**Models - Classification**
+
+1. Base Logistic Regression (OLS)
+2. Ridge Regression
+3. Lasso Regression
+4. Elastic Net Regression
+5. Polynomial Regression
+6. Decision Tree (Base)
+7. Decision Tree (Hyperparameter Tuned using GridSearchCV)
+8. Random Forest (Base)
+9. Random Forest (Hyperparameter Tuned using GridSearchCV)
+10. Naive Bayes
+11. k-NN
+12. SVM
