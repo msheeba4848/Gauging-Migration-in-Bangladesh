@@ -1,0 +1,107 @@
+File Manifest for ICPSR 38846
+
+Carrico, Amanda, and Katharine M. Donato. Bangladesh Environment and
+Migration Survey (BEMS), 2019 . ICPSR38846-v1. Ann Arbor, MI: Inter-
+university Consortium for Political and Social Research [distributor],
+2023-07-24. http://doi.org/10.3886/ICPSR38846.v1
+
+
+Study-level Documentation
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    38846-descriptioncitation.pdf       -       -         -       2023-07-24  -
+
+    38846-manifest.txt                  -       -         -       daily       -
+
+    38846-Documentation-PI_codebook.xlsx -       -         -       2023-07-24  63453ba5ebd3e819d660f3721459538b
+
+    38846-Manual.pdf                    -       -         -       2023-07-24  f81e2838a2652018b7fc3a4cf6578941
+
+    38846-Questionnaire.pdf             -       -         -       2023-07-24  fdb1f484aacb458e3c10d0d4a9dc89a9
+
+
+DS0001 Household-Level Data
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    38846-0001-Codebook-ICPSR.pdf       -       -         -       2023-07-24  0025a9711f40c87b209bc67e1f617736
+
+    38846-0001-Data.dta                 -       4,383     1040    2023-07-24  e83ca5bd35ecca04906a7549bfe2fc50
+
+    38846-0001-Data.rda                 -       4,383     1040    2023-07-24  9298028776f32c74707b0cee78c460fc
+
+    38846-0001-Data.sav                 -       4,383     1040    2023-07-24  6769579b3a986ee7c1882cb1bf17c591
+
+    38846-0001-Data.stc                 -       4,383     1040    2023-07-24  acb7d3d5fada5bb5ff917533c06a33c2
+
+    38846-0001-Data.tsv                 -       4,383     1040    2023-07-24  f757afdf925a87a40e8c1ade36a6b280
+
+    38846-0001-Data.txt                 1879    4,383     1040    2023-07-24  b4577beabbd11437fddc42adc81edfb9
+
+    38846-0001-Setup.dct                -       -         -       2023-07-24  645287211f3d79593ff660b9c6b0312b
+
+    38846-0001-Setup.do                 -       -         -       2023-07-24  3c8af5a6419d64a92baa51461b4f32b7
+
+    38846-0001-Setup.sas                -       -         -       2023-07-24  1c4bb9f6150e1c37a19231e2868d9a94
+
+    38846-0001-Setup.sps                -       -         -       2023-07-24  a3e06b68d0262afa131a603fe45e5c6e
+
+
+DS0002 Individual-Level Migration Data
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    38846-0002-Codebook-ICPSR.pdf       -       -         -       2023-07-24  a4d7f427a933910f5fbab8bcc7a53346
+
+    38846-0002-Data.dta                 -       23,506    1095    2023-07-24  10a6d0290fabd30c24199adc586a33b6
+
+    38846-0002-Data.rda                 -       23,506    1095    2023-07-24  ffce86108281ae004b876bc8bf3e7827
+
+    38846-0002-Data.sav                 -       23,506    1095    2023-07-24  7e782a7b14d87b7aa69f375462f73d76
+
+    38846-0002-Data.stc                 -       23,506    1095    2023-07-24  c0d3916c3bbf13bf41e7223075531c0d
+
+    38846-0002-Data.tsv                 -       23,506    1095    2023-07-24  363cd1709e6609f3a37c7b593bc8a054
+
+    38846-0002-Data.txt                 2108    23,506    1095    2023-07-24  892562403d28e0a9cf7be3399f8a494d
+
+    38846-0002-Setup.dct                -       -         -       2023-07-24  000b598265217d781802c6784e89d63f
+
+    38846-0002-Setup.do                 -       -         -       2023-07-24  e3b59ae3327278e45297a39fba818223
+
+    38846-0002-Setup.sas                -       -         -       2023-07-24  83933d924c1358e0dcc005d6071f4308
+
+    38846-0002-Setup.sps                -       -         -       2023-07-24  97e9a7a0b955e5ff1c7a2f9177112765
+
+
+DS0003 Individual-Level Demographic Data
+
+    Filename                            Record  Record    Var.    Date        MD5
+                                        Length  Count     Count   Updated     Checksum
+
+    38846-0003-Codebook-ICPSR.pdf       -       -         -       2023-07-24  42e2f559779acd3607165895a52cb463
+
+    38846-0003-Data.dta                 -       23,504    694     2023-07-24  9a1e90dd78edd6fae1478bd14cf521f9
+
+    38846-0003-Data.rda                 -       23,504    694     2023-07-24  7d8fd70a4a39f452e13f9659f95d9488
+
+    38846-0003-Data.sav                 -       23,504    694     2023-07-24  2c6772904c9716d8c034200076528593
+
+    38846-0003-Data.stc                 -       23,504    694     2023-07-24  0aa40ea624620192ff6fa21455830b2a
+
+    38846-0003-Data.tsv                 -       23,504    694     2023-07-24  1536e030c2cf12e4332b16838b02145f
+
+    38846-0003-Data.txt                 1304    23,504    694     2023-07-24  6dd77161ed35da7cdd517798596bdf3e
+
+    38846-0003-Setup.dct                -       -         -       2023-07-24  c7cad4154c3f77d45e4e4b8fc91039fb
+
+    38846-0003-Setup.do                 -       -         -       2023-07-24  157bb7f42366627f9f37545ec759ca96
+
+    38846-0003-Setup.sas                -       -         -       2023-07-24  6659e67eb01a1b39bba75f7465c6980a
+
+    38846-0003-Setup.sps                -       -         -       2023-07-24  8caa826646784611d3cd41dce111e27e
+

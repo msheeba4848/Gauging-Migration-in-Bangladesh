@@ -1,0 +1,11 @@
+---
+title: "Resources"
+format: html
+---
+
+1. https://cran.r-project.org/web/packages/iheiddown/vignettes/poster.html
+2. https://wytham.rbind.io/post/making-a-poster-in-r/
+3. https://www.posterpresentations.com/free-poster-templates.html
+4. https://www.posternerd.com/sciposters-templates
+5. https://create.microsoft.com/en-us/templates/posters
+   
