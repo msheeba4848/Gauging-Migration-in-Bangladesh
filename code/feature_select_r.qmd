@@ -14,6 +14,7 @@ print(head(df))
 library(caret)
 set.seed(123)
 
+
 train_idx <- createDataPartition(df$D1A_1V1L, p = 0.8, list = FALSE)
 train <- df[train_idx, ]
 test <- df[-train_idx, ]
@@ -26,7 +27,7 @@ test <- df[-train_idx, ]
 ```{r}
 
 # Fit the model in linear model
-model1=lm(D1A_1V1L~.,data=train)
+model1=glm(D1A_1V1L~.,data=train)
 
 # Predict with the test data
 pred <- predict(model1, newdata = test)
