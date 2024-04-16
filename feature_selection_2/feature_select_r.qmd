@@ -7,64 +7,75 @@ editor: visual
 ```{r}
 library(caret)
 df_original <- read.csv('../cleaned_data/cleaning_data-02.csv')
-#df <- replace(df, is.na(df), 99999)
-#df <- df[, c(-1,-2,-3,-4,-9)]
+df <- replace(df, is.na(df), 99999)
+df <- df[, c(-1,-2,-3,-4,-9)]
 #df <- as.data.frame(lapply(df, as.factor))
-#print(head(df))
+print(head(df))
 
 ```
 
+
 # Model 1
+Independent Variable
+D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head
 
-Independent Variable D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head
 
-Dependent Variable A12: Household: Can you write a letter? A13: Household: Level of education (Highest level passed) A14: Household: Livelihood/occupation D1A_6AL: Internal: District of destination - Last, Head D1A_7ML: Internal: Month of arrival - Last, Head A15V1: Household: Have migration experience?: Internal -- not in cleaned data? A15V2: Household: Have migration experience?: India -- not in cleaned data? A15V3: Household: Have migration experience?: Other country A15V4: Household: Have migration experience?: No migration
+Dependent Variable
+A12: Household: Can you write a letter?
+A13: Household: Level of education (Highest level passed)
+A14: Household: Livelihood/occupation
+D1A_6AL: Internal: District of destination - Last, Head
+D1A_7ML: Internal: Month of arrival - Last, Head
+A15V1: Household: Have migration experience?: Internal
+-- not in cleaned data? A15V2: Household: Have migration experience?: India
+-- not in cleaned data? A15V3: Household: Have migration experience?: Other country
+A15V4: Household: Have migration experience?: No migration
+
+
+
 
 ```{r}
-df1 <-df_original[, c("D1A_1V1L", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4")]
+df2 <-df_original[, c("D1A_1V1L", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4")]
 # temporarily taking out D1A_6AL
 
 #converting cateogorical variables to factor
-df1 <- as.data.frame(lapply(df1, factor))
-print(head(df1))
+df2 <- as.data.frame(lapply(df2, factor))
+print(head(df2))
 ```
 
 ```{r}
 # converting variables to dummy variables
 library("fastDummies")
-df1 <- fastDummies::dummy_cols(df1)
-print(dim(df1))
+df2 <- fastDummies::dummy_cols(df2)
+print(dim(df2))
 ```
 
 ```{r}
 # removing rows that do not have D1A_1V1L
-df1 <- df1[!is.na(df1$D1A_1V1L), ]
+df2 <- df2[!is.na(df2$D1A_1V1L), ]
 # Dropped duplicate columns that we made into dummy variables already
-df1 <- df1[, -which(names(df1) %in% c("D1A_1V1L_1", "D1A_1V1L_0", "D1A_1V1L_NA", "A12_2", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4"))]
+df2 <- df2[, -which(names(df2) %in% c("D1A_1V1L_1", "D1A_1V1L_0", "D1A_1V1L_NA", "A12_2", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4"))]
 #replace NA with 0, 0 meaning "No", assuming that if the participant did not say yes to a question, than it would be no.
-df1 <- replace(df1, is.na(df1), 0)
-print(head(df1))
-
+df2 <- replace(df2, is.na(df2), 0)
+print(head(df2))
 ```
-
 ```{r}
 # INSERT CODE 
 
 set.seed(123) # for reproducibility
-train_idx <- createDataPartition(df1$D1A_1V1L, p = 0.8, list = FALSE)
-train <- df1[train_idx,]
-test <- df1[-train_idx,] 
+train_idx <- createDataPartition(df2$D1A_1V1L, p = 0.8, list = FALSE)
+train <- df2[train_idx,]
+test <- df2[-train_idx,] 
 ```
 
 ```{r}
 
 #trying a logistic regression
-model <- glm(D1A_1V1L ~ ., data = df1, family = binomial)
+model <- glm(D1A_1V1L ~ ., data = df2, family = binomial)
 
 # look at summary of logistic regression model
 (summary2_lm <- summary(model))
 ```
-
 ```{r}
 
 # Create model with predictors found from linear model
@@ -109,14 +120,13 @@ cat("Recall:", recall, "\n")
 cat("F1 Score:", F1, "\n")
 
 ```
-
 ## Regsubset - Attempt
 
 ```{r}
 # INSERT CODE 
 library(leaps)
 
-model1 <- regsubsets(D1A_1V1L ~ A14_8 + A14_9 + A14_17 + D1A_7ML_9, data = df1, nvmax = 71, method = "exhaustive")
+model1 <- regsubsets(D1A_1V1L ~ A14_8 + A14_9 + A14_17 + D1A_7ML_9, data = df2, nvmax = 71, method = "exhaustive")
 
 summary(model1)
 
@@ -134,272 +144,113 @@ data.frame(
 )
 ```
 
+
+
 ## Feature Selection/Interesting Findings
 
-Results: A14_8 -1.747e+00 8.781e-01 -1.989 0.0467 \*\
-A14_9 2.309e+00 9.075e-01 2.544 0.0110 \* A14_17 -2.934e+00 6.180e-01 -4.747 2.06e-06 \*\* *D1A_7ML_9 1.268e+00 6.034e-01 2.101 0.0356*
+Results:
+A14_8       -1.747e+00  8.781e-01  -1.989   0.0467 *  
+A14_9        2.309e+00  9.075e-01   2.544   0.0110 * 
+A14_17      -2.934e+00  6.180e-01  -4.747 2.06e-06 ***
+D1A_7ML_9    1.268e+00  6.034e-01   2.101   0.0356 * 
 
-Descriptions Mapped: A14_8: Domestic servant A14_9: Non agricultural worker(factory worker, blue collar service) A14_17: Homemaker D1A_7ML_9: D1A_7ML: Internal: Month of arrival - Last, Head - Month 9/September \*\*\* could we also do year??
+Descriptions Mapped:
+A14_8: Domestic servant
+A14_9: Non agricultural worker(factory worker, blue collar service)
+A14_17: Homemaker
+D1A_7ML_9: D1A_7ML: Internal: Month of arrival - Last, Head - Month 9/September
+  *** could we also do year??
+  
+Conclusion:
+These predictors may have a relationship to D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head.
 
-Conclusion: These predictors may have a relationship to D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head.
+
 
 # Model 2
 
-Independent Variable D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head
+Independent Variable
+D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head
 
-Dependent Variable. -- numeric D1A_4: Internal: Total number of trips - Head.\
--- numeric A08: Household: Year of birth converted to Age.\
--- numeric N1_6TAKA: Internal: How much paid in taka?\
--- numeric A11Y: Household: Age at first marriage.
 
-N1_6TAKA. N1_12. N1_13. N1_14: Internal: Average monthly remittances sent home\
-N1_16: Internal: Average monthly savings. N1_17\
-G1_5A1SIL1\
-G2_5B1S1 D1A_10AF_3M: Internal: Wage(taka)- First, Head Monthly\
-D1A_10AL_3M. D1A_8F: Internal: Duration of stay - First, Head.
+Dependent Variable
+-- numeric D1A_4: Internal: Total number of trips - Head
+-- numeric A08: Household: Year of birth
+    converted to Age
+-- numeric N1_6TAKA: Internal: How much paid in taka?
+-- numeric A11Y: Household: Age at first marriage
 
 ```{r}
-df2 <-df_original[, c("D1A_1V1L", "D1A_4", "A08", "A11Y" ,"N1_6TAKA", "N1_12", "N1_13", "N1_14", "N1_16", "N1_17", "D1A_10AF_3M", "D1A_10AL_3M", "D1A_8F")]
+df2 <-df_original[, c("D1A_1V1L", "D1A_4", "A08", "A11Y" ,"N1_6TAKA")]
 print(head(df2))
 ```
-
 ```{r}
 df2 <- df2[!is.na(df2$D1A_1V1L), ]
 df2 <- na.omit(df2)
 df2$Age <- 2019 - df2$A08
-df2 <-df2[, c("D1A_1V1L", "D1A_4", "A11Y" ,"N1_6TAKA", "N1_12", "N1_13", "N1_14", "N1_16", "N1_17", "D1A_10AF_3M", "D1A_10AL_3M", "D1A_8F")]
+df2 <-df2[, c("D1A_1V1L", "D1A_4", "Age", "N1_6TAKA", "A11Y")]
 print(head(df2))
 print(dim(df2))
 ```
-
 ```{r}
 model <- lm(D1A_1V1L ~ ., data = df2)
 
 # look at summary of linear model
 (summary2_lm <- summary(model))
 ```
-
 ## Feature Selection/Interesting Findings
 
-Conclusion: Number of trips predictor of primary purpose of trip to work/earn money
-
-Add D1C_7MF: Internal: Month of arrival - First, Other D1C_8F: Internal: Duration of stay - First, Other
+Conclusion:
+Number of trips predictor of primary purpose of trip to work/earn money
 
 # Model 3
 
-Independent Variables D1A_1V9L: Internal: Primary purpose of trip: accompany family - Last, Head
+Independent Variables
+D1A_1V9L: Internal: Primary purpose of trip: accompany family - Last, Head
 
-Dependent Variable A12: Household: Can you write a letter? A13: Household: Level of education (Highest level passed) A14: Household: Livelihood/occupation D1A_6AL: Internal: District of destination - Last, Head D1A_7ML: Internal: Month of arrival - Last, Head A15V1: Household: Have migration experience?: Internal -- not in cleaned data? A15V2: Household: Have migration experience?: India -- not in cleaned data? A15V3: Household: Have migration experience?: Other country A15V4: Household: Have migration experience?: No migration
+Dependent Variable
+A12: Household: Can you write a letter?
+A13: Household: Level of education (Highest level passed)
+A14: Household: Livelihood/occupation
+D1A_6AL: Internal: District of destination - Last, Head
+D1A_7ML: Internal: Month of arrival - Last, Head
+A15V1: Household: Have migration experience?: Internal
+-- not in cleaned data? A15V2: Household: Have migration experience?: India
+-- not in cleaned data? A15V3: Household: Have migration experience?: Other country
+A15V4: Household: Have migration experience?: No migration
+
+
+
 
 ```{r}
-df3 <-df_original[, c("D1A_1V9L", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4")]
+df2 <-df_original[, c("D1A_1V9L", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4")]
 # temporarily taking out D1A_6AL
-df3 <- as.data.frame(lapply(df3, factor))
-print(head(df3))
-```
-
-```{r}
-library("fastDummies")
-df3 <- fastDummies::dummy_cols(df3)
-print(dim(df3))
-```
-
-```{r}
-df3 <- df3[!is.na(df3$D1A_1V9L), ]
-# Drop specified columns from df2
-df3 <- df3[, -which(names(df3) %in% c("D1A_1V9L_1", "D1A_1V9L_0", "D1A_1V9L_NA", "A12_2", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4"))]
-df3 <- replace(df3, is.na(df3), 0)
+df2 <- as.data.frame(lapply(df2, factor))
 print(head(df2))
 ```
 
 ```{r}
-model <- glm(D1A_1V9L ~ ., data = df3, family=binomial)
+library("fastDummies")
+df2 <- fastDummies::dummy_cols(df2)
+print(dim(df2))
+```
+
+```{r}
+df2 <- df2[!is.na(df2$D1A_1V9L), ]
+# Drop specified columns from df2
+df2 <- df2[, -which(names(df2) %in% c("D1A_1V9L_1", "D1A_1V9L_0", "D1A_1V9L_NA", "A12_2", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4"))]
+df2 <- replace(df2, is.na(df2), 0)
+print(head(df2))
+```
+
+```{r}
+model <- glm(D1A_1V9L ~ ., data = df2, family=binomial)
 
 # look at summary of linear model
 (summary2_lm <- summary(model))
 ```
 
+
 ## Feature Selection/Interesting Findings
-
 Not much different from Model 1
-
-```{r}
-
-#College <- na.omit(College)
-
-# fit data into matrix
-#x <- model.matrix(Apps~ ., College)[, ]
-#y <- College$Apps
-
-x <- model.matrix(D1A_1V1L ~ ., df1)[, ]
-y <- df1$D1A_1V1L
-
-# split data
-set.seed(1)
-train <- sample(c(TRUE, FALSE), nrow(df1), replace=TRUE, prob=c(0.8,0.2))
-test <- (-train)
-y.test <- y[test]
-
-#train <- data.matrix(train[, !names(train) %in% c("Apps")])
-#test <- data.matrix(test[, !names(test) %in% c("Apps")])
-
-
-
-```
-
-```{r}
-library(glmnet)
-set.seed(1)
-y <- as.numeric(as.character(y))
-ridge.mod <- glmnet(x[train, ], y[train], alpha = 0, thresh = 1e-12)
-#plot(ridge.mod)
-
-cv.out <- cv.glmnet(x[train, ], y[train], alpha = 0, lambda.min.ratio=0.000001)
-# Plot the test MSE as a function of the log of the regularization 
-# parameter (i.e. log($\lambda$)) for several orders of magnitude
-# with error plotted
-plot(cv.out, main="MSE for Several Orders of Magnitude")
-# from the plot, the error remains constant around 10, so i will choose 10 for lambda
-#cv.glmnet(x_train,y_train,alpha=0, lambda.min.ratio=0.000001)
-bestlam <- cv.out$lambda.min
-bestlam 
-
-# best lambda is 10, can also evaluate plot to find best lambda
-# bestlam=10
-
-ridge.pred <- predict(ridge.mod, s = bestlam,
-    newx = x[test, ])
-
-# MSE
-ridge_mse <- mean((ridge.pred - y.test)^2)
-# RMSE
-ridge_rmse <- sqrt(ridge_mse)
-
-out <- glmnet(x, y, alpha = 0, lambda = bestlam) # Fit ridge regression model on full dataset
-predict(out, type = "coefficients", s = bestlam)[1:16,] # Display coefficients using lambda chosen by CV
-# coef
-coef(out)
-
-# report test error
-print("Report Test Error:")
-cat("Ridge MSE:", ridge_mse, "\n")
-cat("Ridge RMSE:", ridge_rmse, "\n")
-print("The test error is greater with Ridge Regression compared to linear regression.")
-
-```
-
-```{r}
-
-# Call lambda values and corresponding test MSEs
-lambda_values <- cv.out$lambda
-test_mses <- cv.out$cvm
-
-# Plot the test MSE as a function of the log of the regularization 
-# parameter (i.e. log($\lambda$)) for several orders of magnitude.
-
-plot(log(lambda_values), test_mses, type = "b", 
-     xlab = "log(lambda)", ylab = "Test MSE",
-     main = "Test MSE vs. log(lambda) of Ridge Regression")
-
-
-```
-
-```{r}
-
-lasso.mod <- glmnet(x[train, ], y[train], alpha = 1, lambda.min.ratio=0.000001)
-
-# plot of non-zero coefficient estimates, baseline model
-
-#plot(lasso.mod) \### set.seed(1) cv.out \<- cv.glmnet(x\[train, \], y\[train\], alpha = 1, lambda.min.ratio=0.000001)
-
-# Plot the MSE as a function of the log of the
-
-# regularization parameter (i.e. log($\lambda$)) for
-
-# several orders of magnitude.
-
-plot(cv.out)
-
-# find lambda that minimizes training MSE
-
-bestlam <- cv.out$lambda.min
-
-# Another option is to base off the plot. let's set to 7
-
-# bestlam \<- 7
-
-# predict the test data with the best lambda
-
-lasso.pred <- predict(lasso.mod, s = bestlam, newx = x[test, ])
-
-# plot of non-zero coefficient estimates
-
-plot(lasso.mod, xvar="lambda")
-
-# Calculate the test MSE
-
-lasso_mse <- mean((lasso.pred - y.test)^2) # Calculate the test RMSE lasso_rmse \<- sqrt(mse)
-
-lasso.mod.final <- glmnet(x[train, ], y[train], alpha = 1, lambda=bestlam)
-
-# sparse matrix
-
-coef(lasso.mod.final)
-
-# report test error
-
-print("Report Test Error:") 
-cat("Lasso MSE:", lasso_mse, "\n") 
-#cat("lasso RMSE:", lasso_rmse, "\n") 
-print("The test error for Lasso Regression is less than Ridge Regression compared.") 
-print("Lasso Regression had a similar test error to linear regression.")
-
-# plot of non-zero coefficient estimates
-
-#plot(lasso.mod)
-
-```
-
-
-
-
-
-#https://www.geeksforgeeks.org/random-forest-approach-in-r-programming/
-
-```{r}
-
-
-library(randomForest)
-
-
-# Fitting Random Forest to the train dataset
-set.seed(120)  # Setting seed
-classifier_RF <- randomForest(x[train, ], y[train],
-                               ntree = 500)
-
-# Printing the Random Forest model
-print(classifier_RF)
-
-# Predicting the Test set results
-y_pred <- predict(classifier_RF, newdata = x[test, ])
-
-
-# Confusion Matrix
-#confusion_mtx <- table(y[test], y_pred)
-#print(confusion_mtx)
-
-# Plotting the model
-plot(classifier_RF)
-
-# Importance plot
-#importance(classifier_RF)
-
-# Variable importance plot
-varImpPlot(classifier_RF)
-
-```
-
-
-
 
 
