@@ -1,0 +1,175 @@
+---
+title: "Dataset 1 analysis"
+format: html
+---
+
+```{r}
+library(randomForest)
+library(caret)
+library(stats)
+library(glmnet)
+library(ggplot2)
+library(dplyr)
+library(reshape2)
+options(warn = -1)
+df <- read.csv("/Users/ishaanbabbar/dsan5300_project/new-cleaned_data-01.csv")
+
+
+selected_df <- df %>% select(TMEM, P5_1, J2_1, J2_14, J1AB, T2, Q1_1, Q1_3, Q1_5, Q1_13)
+selected_df[is.na(selected_df)] <- 0.01
+
+df_plot <- melt(df)
+ggplot(df_plot, aes(value)) + 
+  geom_histogram(binwidth = 0.5) +
+  facet_wrap(~ variable, scales = "free") + 
+  labs(title = "Data before Feature Selection") + theme(plot.title = element_text(size = 25))
+
+selected_df_plot <- melt(selected_df)
+ggplot(selected_df_plot, aes(value)) +
+  geom_histogram(binwidth = 0.5) +
+  facet_wrap(~ variable, scales = "free") +
+  labs(title = "Data after Feature Selection") + theme(plot.title = element_text(size = 20))
+
+```
+
+```{r}
+# EDA analysis for feature selection 
+corr_matrix <- cor(selected_df[, c("TMEM", "P5_1", "J2_1", "J2_14", "J1AB", "T2", "Q1_1", "Q1_3", "Q1_5", "Q1_13")])
+
+library(corrplot)
+corrplot(corr_matrix, method = "color", type = "upper", tl.col = "black")
+
+filtered_df <- selected_df %>%
+  filter(Q1_1 != 0.01 & Q1_3 != 0.01)
+
+Q1_1_labels <- c("Decrease", "Increase", "No change", "Not Present")
+
+# Convert Q1_1 to a factor with custom labels
+filtered_df$Q1_1 <- factor(filtered_df$Q1_1, levels = c(1,2,3,9) , labels = Q1_1_labels)
+
+filtered_df$Q1_3 <- factor(filtered_df$Q1_3, levels = c(1,2,3,9) , labels = Q1_1_labels)
+
+ggplot(filtered_df, aes(x = factor(Q1_1), fill = factor(Q1_3))) + geom_bar(position = "stack") + labs(x = "Temperature", y = "Responses", title = "Perceived Eniromental Change between Temperature and Rainfall") + scale_fill_discrete(name = "Raifall During other seasons") + theme_minimal()
+```
+
+```{r}
+# Data frame based on the models created with RMSE, MAE, R_squared based on Y target variable Q1_1
+# Tagret Variable: 
+data <- data.frame(
+  Model = c("Base Linear Regression (OLS)", "Ridge Regression", "Lasso Regression",
+            "Elastic Net Regression", "Decision Tree (Base)", "Random Forest (Base)",
+            "Decision Tree (Hyperparameter Tuned)", "Random Forest (Hyperparameter Tuned)",
+            "Gradient Boosting", "XGBoost", "Stacked Model"),
+  RMSE = c(0.3980601, 0.4172933, 0.4078301, 0.4064160, 0.3181162, 0.3253209,
+           0.3181162, 0.3198989, 0.3203697, 0.3480966, 0.3189486),
+  MAE = c(0.2771514, 0.2939489, 0.3019748, 0.2967684, 0.1313860, 0.1503552,
+          0.1313860, 0.1409187, 0.1422168, 0.1797902, 0.1461091),
+  R_squared = c(0.9470258, 0.9439985, 0.9462018, 0.9461558, 0.9661455, 0.9646005,
+                0.9661455, 0.9657753, 0.9656845, 0.9595205, 0.9659662)
+)
+data_melted <- melt(data, id.vars = "Model")
+data_melted1 <- data_melted[data_melted$variable != "R_squared", ]
+
+# Determine the best model in the analysis
+best_model <- data[which.min(data$RMSE), ]
+best_model <- rbind(best_model, data[which.min(data$MAE), ])
+best_model <- rbind(best_model, data[which.max(data$R_squared), ])
+
+best_model <- unique(best_model)
+best_model
+```
+
+
+
+```{r}
+ggplot(data_melted[data_melted$variable == "R_squared", ], aes(x = Model, y = value, color = variable, group = variable)) +
+  geom_point(size= 3, fill = "#E7943F") + scale_color_manual(values = c("#E7943F")) +
+  labs(
+    x = "Model",
+    y = "R-squared",
+    title = "R-squared Values for Different Models",
+    color = "Metric"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom", axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5))
+
+```
+
+
+```{r}
+ggplot(data_melted1, aes(x = Model, y = value, color = variable, group = variable)) +
+  geom_point(size = 3) +  scale_color_manual(values = c("#AC5448", "#635B4E")) +
+  labs(
+    x = "Model",
+    y = "Value",
+    title = "Model Performance Metrics for RMSE and MAE",
+    color = "Metric"
+  ) +
+  theme_minimal()  +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+  )
+```
+
+```{r}
+ggplot(data_melted1, aes(x = Model, y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "identity", alpha = 0.7, color = NA) +
+  labs(
+    x = "Model",
+    y = "Value",
+    title = "Model Performance Metrics",
+    fill = "Metric"
+  ) +
+  scale_fill_manual(values = c("RMSE" = "#E7943F", "MAE" = "#635B4E")) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(), 
+  ) 
+
+```
+
+```{r}
+ggplot(data_melted, aes(x = variable, y = Model, fill = value)) + 
+geom_tile() + scale_fill_gradient(low = "#2D3740", high = "#E7943F") + 
+theme_minimal() + labs(title = "Heatmap Metrics for Different Models", x = "Metrics", y = "Model", fill = "Value") + theme(element_line(color = "white"))
+```
+
+```{r}
+ggplot(data_melted, aes(x = Model, y = value, fill = variable)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  coord_flip() + scale_fill_manual(values = c("#2D3740", "#F7D290", "#635B4E")) +
+  facet_wrap(~ variable, scales = "free_y", ncol = 1) +
+  labs(
+    x = "Model",
+    y = "Value",
+    title = "Model Performance Metrics",
+    fill = "Metric"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5), 
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_line(color = "white"),   
+  ) 
+```
+
+```{r}
+X <- data.matrix(data[, c('RMSE', "R_squared")])
+y <- data$MAE
+
+lasso_model <- cv.glmnet(X, y, alpha = 1)
+plot(lasso_model)
+
+```
+
+```{r}
+X <- data.matrix(data[, c('MAE', "R_squared")])
+y <- data$RMSE
+
+lasso_model <- cv.glmnet(X, y, alpha = 1)
+plot(lasso_model)
+```
