@@ -9,7 +9,7 @@ library(caret)
 library(pROC)
 library(dplyr)
 
-df_original <- read.csv('../cleaned_data/cleaning_data-02.csv')
+df_original <- read.csv('cleaned_data/cleaning_data-02.csv')
 
 ```
 
