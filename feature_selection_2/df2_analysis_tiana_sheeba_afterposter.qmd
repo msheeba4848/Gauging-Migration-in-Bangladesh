@@ -1,0 +1,918 @@
+---
+title: "Data 2"
+format: html
+editor: visual
+---
+
+```{r}
+library(caret)
+library(pROC)
+library(dplyr)
+
+df_original <- read.csv('../cleaned_data/cleaning_data-02.csv')
+
+```
+
+# Base Model: Logistic Regression
+
+Independent Variable D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head
+
+Dependent Variable. A12: Household: Can you write a letter?\
+A13: Household: Level of education (Highest level passed) A14: Household: Livelihood/occupation D1A_6AL: Internal: District of destination - Last, Head D1A_7ML: Internal: Month of arrival - Last, Head A15V1: Household: Have migration experience?: Internal -- not in cleaned data? A15V2: Household: Have migration experience?: India -- not in cleaned data? A15V3: Household: Have migration experience?: Other country A15V4: Household: Have migration experience?: No migration
+
+```{r}
+
+df1 <-df_original[, c("D1A_1V1L", "A08", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4", "D1A_4", "A11Y" ,"N1_6TAKA", "N1_12", "N1_13", "N1_14", "N1_16", "N1_17", "D1A_10AF_3M", "D1A_10AL_3M", "D1A_8F")]
+df1$Age <- 2019 - df1$A08
+df1 <-df1[, c("D1A_1V1L", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4", "D1A_4", "A11Y" ,"N1_6TAKA", "N1_12", "N1_13", "N1_14", "N1_16", "N1_17", "D1A_10AF_3M", "D1A_10AL_3M", "D1A_8F")]
+# taking out D1A_6AL because too many destinations in list
+
+df1 <-df1[, c("D1A_1V1L", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4", "D1A_4", "A11Y" ,"N1_6TAKA", "N1_12", "N1_13", "N1_14", "N1_16", "N1_17", "D1A_10AF_3M", "D1A_10AL_3M", "D1A_8F")]
+
+df1 <- df1 %>% rename( "Work_Earn_Money" = D1A_1V1L, 
+                       "Can_write_letter" = A12, 
+                       "Education_Level" = A13, 
+                       "Livelihood_Occupation" = A14,
+                       "Month_Arrival" = D1A_7ML, 
+                       "Migraton_Experience_Internal" = A15V1, 
+                       "No_Migration_Experience" = A15V4, 
+                       "Number_Trips" = D1A_4, 
+                       "Age_First_Marriage" = A11Y,
+                       "Paid_in_Taka" = N1_6TAKA, 
+                       "Rent_per_Month" = N1_12, 
+                       "Food_budget" = N1_13, 
+                       "Monthly_Remittances" = N1_14, 
+                       "Monthly_Savings" = N1_16, 
+                       "Saving_brought_Home" = N1_17, 
+                       "Wage_First_Head" = D1A_10AF_3M, 
+                       "Wage_Last_Head"= D1A_10AL_3M, 
+                       "Duration_of_stay" = D1A_8F)
+
+
+#converting cateogorical variables to factor
+#columns_to_factor <- c("D1A_1V1L", "A12", "A13", "A14", "D1A_7ML", "A15V1", "A15V4")
+columns_to_factor <- c("Work_Earn_Money", "Can_write_letter", "Education_Level", "Livelihood_Occupation", "Month_Arrival", "Migraton_Experience_Internal", "No_Migration_Experience")
+df1[columns_to_factor] <- lapply(df1[columns_to_factor], factor)
+
+print(head(df1))
+```
+
+```{r}
+# converting variables to dummy variables
+library("fastDummies")
+df1 <- fastDummies::dummy_cols(df1, remove_first_dummy = TRUE, remove_selected_columns = TRUE)
+print(dim(df1))
+print(head(df1))
+```
+
+```{r}
+# removing rows that do not have D1A_1V1L
+df1 <- df1[!is.na(df1$Work_Earn_Money_1), ]
+
+#replace NA with 0, 0 meaning "No", assuming that if the participant did not say yes to a question, than it would be no.
+df1 <- replace(df1, is.na(df1), 0)
+print(head(df1))
+
+```
+
+```{r}
+# INSERT CODE 
+
+set.seed(123) # for reproducibility
+#train_idx <- createDataPartition(df1$D1A_1V1L, p = 0.8, list = FALSE)
+train_idx <- createDataPartition(df1$Work_Earn_Money_1, p = 0.8, list = FALSE)
+train <- df1[train_idx,]
+test <- df1[-train_idx,] 
+```
+
+```{r}
+
+#trying a logistic regression
+model <- glm(Work_Earn_Money_1 ~ ., data = df1, family = binomial(link='logit'))
+
+# look at summary of logistic regression model
+(summary2_lm <- summary(model))
+```
+
+```{r}
+
+# select the features that are significant for the baseline model and other models
+
+df_model <- df1[ , c('Work_Earn_Money_1', 'Number_Trips', 'Rent_per_Month', 'Monthly_Remittances', 'Wage_Last_Head', 'Duration_of_stay', 'Education_Level_3', 'Education_Level_5', 'Education_Level_6', 'Education_Level_7', 'Education_Level_8', 'Livelihood_Occupation_7', 'Livelihood_Occupation_9', 'Livelihood_Occupation_17')]
+
+set.seed(123) # for reproducibility
+train_idx <- createDataPartition(df_model$Work_Earn_Money_1, p = 0.8, list = FALSE)
+train <- df_model[train_idx,]
+test <- df_model[-train_idx,]
+
+```
+
+```{r}
+
+
+# Create model with predictors found from linear model
+#model2 <- glm(Work_Earn_Money_1 ~ D1A_4 + N1_12 + N1_14 + D1A_10AL_3M + D1A_8F + A13_3 + A13_5 + 
+                #A13_6 + A13_7 + A13_8 + A14_7 + A14_9 + A14_17, data = train, family = binomial)
+
+# Create model with predictors found from linear model
+model2 <- glm(Work_Earn_Money_1 ~ ., data = train, family = binomial(link='logit'))
+
+
+
+#model2 <- glm(Work_Earn_Money_1 ~ D1A_4 + N1_12 + N1_14 + D1A_10AL_3M + D1A_8F + A13_3 + A13_5 + 
+                #A13_6 + A13_7 + A13_8 + A14_7 + A14_9 + A14_17, data = train, family = binomial)
+
+
+# Make predictions on test data
+predictions <- predict(model2, newdata = test, type = "response")
+
+# Convert probabilities to class labels, assign greater than 0.5 to Positive
+pred_classes <- ifelse(predictions > 0.5, "Positive", "Negative")
+
+# Create the confusion matrix
+cm <- table(Actual = test$Work_Earn_Money_1, Predicted = pred_classes)
+
+# Confusion Matrix
+print(cm)
+
+
+roc_curve_lr <- roc(test$Work_Earn_Money_1, predictions, legacy.axes = FALSE)
+
+# Plot ROC curve
+plot(roc_curve_lr, main = "ROC Curve", col = "blue",  legacy.axes = T) 
+
+
+# Save AUC
+auc_lr <- round(auc(roc_curve_lr), 2)
+
+
+```
+
+```{r}
+# Calculate True Positives (TP), True Negatives (TN), False Positives (FP), False Negatives (FN)
+
+
+TP <- 325
+TN <- 34
+FP <- 41
+FN <- 10
+
+
+# Calculate accuracy
+accuracy <- (TP + TN) / sum(cm)
+
+# Calculate precision
+precision <- TP / (TP + FP)
+
+# Calculate recall (also called sensitivity)
+recall <- TP / (TP + FN)
+
+# Calculate F1 score
+F1 <- 2 * (precision * recall) / (precision + recall)
+
+
+#Specificity
+# Calculate specificity
+specificity <- (TN / (TN + FP))
+
+
+
+# Print the metrics
+cat("Accuracy:", accuracy, "\n")
+cat("Precision:", precision, "\n")
+cat("Recall:", recall, "\n")
+cat("F1 Score:", F1, "\n")
+print(paste("Specificity:", specificity))
+
+
+```
+
+## Feature Selection/Interesting Findings
+
+## Final Conclusions
+
+The following are features are predictors of D1A_1V1L: Internal: Primary purpose of trip: work/earn money - Last, Head.
+
+D1A_4 2.102e-01 8.233e-02 2.553 0.010670 - D1A_4: Internal: Total number of trips - Head
+
+N1_12 1.868e-04 6.995e-05 2.670 0.007590 - N1_12: Internal: Rent per month
+
+N1_14 3.018e-04 4.956e-05 6.089 1.13e-09 \*\*\* -\> N1_14: Internal: Average monthly remittances sent home
+
+D1A_10AL_3M 1.371e-04 3.409e-05 4.021 5.80e-05\*\*\* -\> D1A_10AL_3M: Internal: Wage(taka)- Last, Head Monthly
+
+D1A_8F -1.485e-03 2.789e-04 -5.326 1.01e-07 \*\*\* -\> D1A_8F: Internal: Duration of stay - First, Head
+
+A13_3 -1.055e+00 4.906e-01 -2.150 0.031541\*\*\* \*\*-\> A13: Household: Level of education (Highest level passed) - 3 Class V (Complete PE)
+
+A13_5 -1.523e+00 5.347e-01 -2.849 0.004385\*\* -\> A13: Household: Level of education (Highest level passed) - 5 SSC (Complete SE)
+
+A13_6 -1.947e+00 6.565e-01 -2.965 0.003025 -\> A13: Household: Level of education (Highest level passed) - 6 College (11 and 12 grades)
+
+A13_7 -1.826e+00 5.520e-01 -3.309 0.000936 -\> A13: Household: Level of education (Highest level passed) - 7 HSC (complete HSE)
+
+A13_8 -2.470e+00 5.359e-01 -4.609 4.04e-06 -\> A13: Household: Level of education (Highest level passed) - 8 University level
+
+A14_7 1.500e+00 7.491e-01 2.003 0.045199 -\> A14: Household: Livelihood/occupation - 7 Rickshaw driver/ Brick breaking/Road building/Construction worker/boatman/earth
+
+A14_9 2.427e+00 8.715e-01 2.785 0.005354 -\> 9 Non agricultural worker(factory worker, blue collar service)
+
+A14_17 -2.769e+00 6.844e-01 -4.046 5.21e-05 -\> 17 Homemaker
+
+
+
+
+# Ridge
+
+```{r}
+library(glmnet)
+
+
+
+# Load your data and prepare x and y
+x <- model.matrix(Work_Earn_Money_1 ~ ., df_model)[, ]
+y <- df_model$Work_Earn_Money_1
+
+# Split data into train and test sets
+set.seed(1)
+train <- sample(c(TRUE, FALSE), nrow(df_model), replace = TRUE, prob = c(0.8, 0.2))
+
+test <- !train
+y.test <- y[test]
+
+# Train Ridge regression model
+ridge.mod <- glmnet(x[train, ], y[train], alpha = 0, lambda.min.ratio = 0.000001)
+
+# Cross-validation for selecting lambda
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 0, lambda.min.ratio = 0.000001)
+bestlam <- cv.out$lambda.min
+
+# Predict the test data with the best lambda
+ridge.pred <- predict(ridge.mod, s = bestlam, newx = x[test, ])
+
+# Assuming predictions are probabilities, convert them to binary classes
+predicted_classes <- ifelse(ridge.pred > 0.5, 1, 0)
+
+# Confusion matrix
+conf_matrix <- table(predicted_classes, y.test)
+
+# Calculate Sensitivity (True Positive Rate)
+sensitivity <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+
+# Calculate Specificity (True Negative Rate)
+specificity <- conf_matrix[1, 1] / sum(conf_matrix[1, ])
+
+# Calculate Accuracy
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+
+# Calculate Precision (Positive Predictive Value)
+precision <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+
+# Calculate Recall (Same as Sensitivity)
+recall <- sensitivity
+
+# Calculate False Positive Rate
+fpr <- 1 - specificity
+
+# Create ROC Curve
+
+roc_curve_ridge <- roc(y.test, ridge.pred)
+
+# Calculate AUC (Area Under Curve)
+auc_value_ridge <- auc(roc_curve_ridge)
+
+roc_curve <- roc(y.test, ridge.pred)
+
+# Calculate AUC (Area Under Curve)
+auc_value <- auc(roc_curve)
+
+# Print the metrics
+print("Metrics:")
+print(paste("Sensitivity (True Positive Rate):", sensitivity))
+print(paste("Specificity (True Negative Rate):", specificity))
+print(paste("Accuracy:", accuracy))
+print(paste("Precision (Positive Predictive Value):", precision))
+print(paste("Recall:", recall))
+print(paste("False Positive Rate:", fpr))
+
+print(paste("AUC (Area Under Curve):", auc_value_ridge))
+
+# Plot ROC curve
+plot(roc_curve_ridge, main = "ROC Curve", col = "blue")
+
+
+print(paste("AUC (Area Under Curve):", auc_value))
+
+# Plot ROC curve
+plot(roc_curve, main = "ROC Curve", col = "blue")
+
+coef(ridge.mod)
+
+
+
+
+```
+
+```{r}
+
+# Call lambda values and corresponding test MSEs
+lambda_values <- cv.out$lambda
+test_mses <- cv.out$cvm
+
+# Plot the test MSE as a function of the log of the regularization 
+# parameter (i.e. log($\lambda$)) for several orders of magnitude.
+
+plot(log(lambda_values), test_mses, type = "b", 
+     xlab = "log(lambda)", ylab = "Test MSE",
+     main = "Test MSE vs. log(lambda) of Ridge Regression")
+
+
+```
+
+# Lasso
+
+```{r}
+
+library(glmnet)
+library(pROC)
+
+# Train Lasso regression model
+lasso.mod <- glmnet(x[train, ], y[train], alpha = 1, lambda.min.ratio = 0.000001)
+
+# Cross-validation for selecting lambda
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 1, lambda.min.ratio = 0.000001)
+
+# Find lambda that minimizes training MSE
+bestlam <- cv.out$lambda.min
+
+# Predict the test data with the best lambda
+lasso.pred <- predict(lasso.mod, s = bestlam, newx = x[test, ])
+
+# Assuming predictions are probabilities, convert them to binary classes
+predicted_classes <- ifelse(lasso.pred > 0.5, 1, 0)
+
+# Confusion matrix
+conf_matrix <- table(predicted_classes, y[test])
+
+# Calculate Sensitivity (True Positive Rate)
+sensitivity <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+
+# Calculate Specificity (True Negative Rate)
+specificity <- conf_matrix[1, 1] / sum(conf_matrix[1, ])
+
+# Calculate Accuracy
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+
+# Calculate Precision (Positive Predictive Value)
+precision <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+
+# Calculate Recall (Same as Sensitivity)
+recall <- sensitivity
+
+# Calculate False Positive Rate
+fpr <- 1 - specificity
+
+# Create ROC Curve
+
+roc_curve_lasso <- roc(y[test], lasso.pred)
+
+# Calculate AUC (Area Under Curve)
+auc_value_lasso <- auc(roc_curve_lasso)
+
+roc_curve <- roc(y[test], lasso.pred)
+
+# Calculate AUC (Area Under Curve)
+auc_value <- auc(roc_curve)
+
+
+# Print the metrics
+print("Metrics:")
+print(paste("Sensitivity (True Positive Rate):", sensitivity))
+print(paste("Specificity (True Negative Rate):", specificity))
+print(paste("Accuracy:", accuracy))
+print(paste("Precision (Positive Predictive Value):", precision))
+print(paste("Recall:", recall))
+print(paste("False Positive Rate:", fpr))
+
+print(paste("AUC (Area Under Curve):", auc_value_lasso))
+
+# Plot ROC curve
+plot(roc_curve_lasso, main = "ROC Curve", col = "blue")
+
+# Save AUC
+auc_lasso <- round(auc(roc_curve_lasso), 2)
+
+
+print(paste("AUC (Area Under Curve):", auc_value))
+
+# Plot ROC curve
+plot(roc_curve, main = "ROC Curve", col = "blue")
+
+coef(lasso.mod)
+
+
+```
+
+```{r}
+library(caret)
+library(pROC)
+library(glmnet)
+library(rpart)
+
+library(e1071)  
+library(class) 
+
+
+evaluate_model <- function(model, actual, predicted_prob, threshold = 0.5, plot_roc = TRUE, show_summary = FALSE) {
+  predicted_classes <- ifelse(predicted_prob > threshold, 1, 0)
+  confusion <- confusionMatrix(as.factor(predicted_classes), as.factor(actual), positive = "1")
+
+
+  roc_result <- roc(actual, predicted_prob)
+  auc_value <- auc(roc_result)
+
+
+  if (plot_roc) {
+    plot(roc_result, main = "ROC Curve")
+    abline(a = 0, b = 1, col = "red")  # Adding a reference line
+    text(x = 0.8, y = 0.2, labels = paste("AUC =", round(auc_value, 2)))
+  }
+  
+  # Optionally print model summary
+  if (show_summary && !is.null(model)) {
+    print(summary(model))
+  }
+  
+
+  list(
+    Accuracy = confusion$overall['Accuracy'],
+    Precision = confusion$byClass['Precision'],
+    Recall = confusion$byClass['Sensitivity'], 
+    Specificity = confusion$byClass['Specificity'],
+    AUC = auc_value,
+    ROC = roc_result
+  )
+}
+
+#set.seed(123) # for reproducibility
+#train_idx <- createDataPartition(df1$Work_Earn_Money_1, p = 0.8, list = FALSE)
+#train_set <- df1[train_idx, ]
+#test_set <- df1[-train_idx, ]
+```
+
+# Elastic
+
+```{r}
+library(glmnet)
+library(pROC)
+
+# Train Elastic Net regression model
+elastic.mod <- glmnet(x[train, ], y[train], alpha = 0.5, lambda.min.ratio = 0.000001)
+
+# Cross-validation for selecting lambda
+cv.out <- cv.glmnet(x[train, ], y[train], alpha = 0.5, lambda.min.ratio = 0.000001)
+
+# Find lambda that minimizes training MSE
+bestlam <- cv.out$lambda.min
+
+# Predict the test data with the best lambda
+elastic.pred <- predict(elastic.mod, s = bestlam, newx = x[test, ])
+
+# Assuming predictions are probabilities, convert them to binary classes
+predicted_classes <- ifelse(elastic.pred > 0.5, 1, 0)
+
+# Confusion matrix
+conf_matrix <- table(predicted_classes, y[test])
+
+# Calculate Sensitivity (True Positive Rate)
+sensitivity <- conf_matrix[2, 2] / sum(conf_matrix[2, ])
+
+# Calculate Specificity (True Negative Rate)
+specificity <- conf_matrix[1, 1] / sum(conf_matrix[1, ])
+
+# Calculate Accuracy
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+
+# Calculate Precision (Positive Predictive Value)
+precision <- conf_matrix[2, 2] / sum(conf_matrix[, 2])
+
+# Calculate Recall (Same as Sensitivity)
+recall <- sensitivity
+
+# Calculate False Positive Rate
+fpr <- 1 - specificity
+
+# Create ROC Curve
+roc_curve_elastic <- roc(y[test], elastic.pred)
+
+# Calculate AUC (Area Under Curve)
+auc_elastic <- round(auc(roc_curve_elastic), 2)
+roc_curve <- roc(y[test], elastic.pred)
+
+# Calculate AUC (Area Under Curve)
+auc_value <- auc(roc_curve)
+
+# Print the metrics
+print("Metrics:")
+print(paste("Sensitivity (True Positive Rate):", sensitivity))
+print(paste("Specificity (True Negative Rate):", specificity))
+print(paste("Accuracy:", accuracy))
+print(paste("Precision (Positive Predictive Value):", precision))
+print(paste("Recall:", recall))
+print(paste("False Positive Rate:", fpr))
+print(paste("AUC (Area Under Curve):", auc_elastic))
+
+# Plot ROC curve
+plot(roc_curve_lasso, main = "ROC Curve", col = "blue", lwd = 2)
+plot(roc_curve_elastic, main = "ROC Curve", col = "green", add=TRUE)
+
+# Add a legend
+legend("bottomright", legend = c("Curve 1", "Curve 2", "Curve 3"),
+       col = c("blue", "red", "green"), lty = 1, lwd = 2)
+print(paste("AUC (Area Under Curve):", auc_value))
+
+# Plot ROC curve
+plot(roc_curve, main = "ROC Curve", col = "blue")
+
+coef(elastic.mod)
+
+
+
+
+```
+
+```{r}
+
+library(glmnet)
+
+
+# Calculate the test MSE
+elastic_mse <- mean((elastic.pred - y[test])^2)
+
+# Print and report test error
+print("Report Test Error:")
+cat("Elastic Net MSE:", elastic_mse, "\n")
+print("Elastic Net Regression combines Lasso and Ridge regularization.")
+
+# Plot of non-zero coefficient estimates
+plot(elastic.mod, xvar = "lambda")
+
+# Get final model with selected lambda
+elastic.mod.final <- glmnet(x[train, ], y[train], alpha = 0.5, lambda = bestlam)
+
+# Sparse matrix
+```
+
+From Line 487 in feature_select_r_sheeba.qmd
+
+# Note about Feature Selection
+
+Feature selection was performed on logistic regression model. Then the selected features were used for Ridge, Lasso, and Elastic. Feature selection was not repeated on ensemble methods to see if ensemble methods prioritized different features in the models.
+
+
+# Decision Tree
+
+```{r}
+#| vscode: {languageId: r}
+
+
+set.seed(123) # for reproducibility
+
+train_idx <- createDataPartition(df1$Work_Earn_Money_1, p = 0.8, list = FALSE)
+train <- df1[train_idx,]
+test <- df1[-train_idx,] 
+
+tree_model <- rpart(Work_Earn_Money_1 ~ ., data = train, method = "class")
+library(rpart.plot)
+
+rpart.plot(tree_model, main="Decision Tree Model", extra=102)  # extra=102 to show node numbers and splits
+predictions_prob <- predict(tree_model, newdata = test, type = "prob")
+results <- evaluate_model(tree_model, test$Work_Earn_Money_1, predictions_prob[,2], plot_roc = TRUE, show_summary = TRUE)
+
+print(results)
+```
+
+# Decision Tree (Hyperparameter Tuned)
+
+```{r}
+#| vscode: {languageId: r}
+library(rpart)
+control <- rpart.control(minsplit = 20, minbucket = 7, maxdepth=30)
+fit <- rpart(Work_Earn_Money_1 ~ ., data=train, method="class", control=control)
+```
+
+## Decision Tree Plot
+```{r}
+#| vscode: {languageId: r}
+rpart.plot(fit, main="Decision Tree Model (Hyperparameter Tuning)", extra=102)  # extra=102 to show node numbers and splits
+predictions_prob_rf <- predict(fit, newdata = test, type = "prob")
+results <- evaluate_model(fit, test$Work_Earn_Money_1, predictions_prob_rf[,2], plot_roc = TRUE, show_summary = TRUE)
+
+
+roc_curve_decision <- roc(test$Work_Earn_Money_1, predictions_prob_rf[, 2])
+# Save AUC
+auc_decision <- round(results$Accuracy, 2)
+
+# Plot ROC curve
+plot(roc_curve_lasso, main = "ROC Curve", col = "blue", lwd = 2)
+plot(roc_curve_elastic, main = "ROC Curve", col = "green", add=TRUE)
+plot(roc_curve_decision, main = "ROC Curve", col = "red", add=TRUE)
+
+# Add a legend
+legend("bottomright", legend = c("Curve 1", "Curve 2", "Curve 3"),
+       col = c("blue", "red", "green"), lty = 1, lwd = 2)
+```
+## Decision Tree with Hyperparameter tuning results
+
+```{r}
+
+specificity <- results$Specificity
+accuracy <- results$Accuracy
+sensitivities <- results$Recall
+precision <- results$Precision
+
+print(specificity)
+print(accuracy)
+print(sensitivities)
+print(precision)
+
+
+```
+
+# Random Forest
+
+```{r}
+#| vscode: {languageId: r}
+library(randomForest)
+library(datasets)
+library(caret)
+
+train_idx <- createDataPartition(df1$Work_Earn_Money_1, p = 0.8, list = FALSE)
+train <- df1[train_idx,]
+test <- df1[-train_idx,] 
+
+train$Work_Earn_Money_1 <- factor(train$Work_Earn_Money_1)
+test$Work_Earn_Money_1 <- factor(test$Work_Earn_Money_1)
+
+rf <- randomForest(Work_Earn_Money_1~., data=train, type='classification', proximity=TRUE, importance=TRUE)
+print(rf)
+
+rf_predict <- predict(rf, newdata=test, type='prob')
+
+```
+
+
+```{r}
+#| vscode: {languageId: r}
+# with mtry
+TN <- 173
+FP <- 80
+FN <- 16
+TP <- 1331
+
+# Calculate metrics
+accuracy <- (TP + TN) / (TP + TN + FP + FN)
+precision <- TP / (TP + FP)
+recall <- TP / (TP + FN)  # Also known as sensitivity
+specificity <- TN / (TN + FP)
+
+# Calculate recall (also called sensitivity)
+recall <- TP / (TP + FN)
+
+# Print the results
+cat(sprintf("Accuracy: %f\n", accuracy))
+cat(sprintf("Precision: %f\n", precision))
+cat(sprintf("Recall (Sensitivity): %f\n", recall))
+cat(sprintf("Specificity: %f\n", specificity))
+cat(sprintf("Sensitivity: %f\n", recall))
+```
+
+
+
+```{r}
+library(pROC)
+
+# Extracting the probabilities of the positive class (assuming it's the first class)
+prob_positive_class <- rf_predict[, "1"]
+
+# Compute ROC curve
+roc_curve_random <- roc(test$Work_Earn_Money_1, prob_positive_class)
+# Save AUC
+auc_random <- round(auc(roc_curve_random), 2)
+
+
+# Plot ROC curve
+plot(roc_curve_lasso, main = "ROC Curve", col = "blue", lwd = 2)
+plot(roc_curve_elastic, main = "ROC Curve", col = "green", add=TRUE)
+plot(roc_curve_decision, main = "ROC Curve", col = "red", add=TRUE)
+
+plot(roc_curve_random, main = "ROC Curve", col = "purple", add=TRUE)
+# Add AUC value to the plot
+
+
+# Add a legend
+legend("bottomright", legend = c("Curve 1", "Curve 2", "Curve 3", "Curve 4"),
+       col = c("blue", "red", "green", "purple"), lty = 1, lwd = 2)
+text(0.8, 0.2, paste("AUC =", round(auc(roc_curve_random), 2)), adj = 0)
+
+roc_curve <- roc(test$Work_Earn_Money_1, prob_positive_class)
+
+# Plot ROC curve
+plot(roc_curve, main = "ROC Curve", col = "blue")
+# Add AUC value to the plot
+text(0.8, 0.2, paste("AUC =", round(auc(roc_curve), 2)), adj = 0)
+
+```
+## Variable Importance
+
+
+```{r}
+# Plot variable importance
+varImpPlot(rf, main = "Variable Importance Plot", cex = 0.6, pch = 19)
+
+```
+
+# XG Boost
+
+
+```{r}
+#| vscode: {languageId: r}
+library(xgboost)
+library(caTools)
+library(dplyr)
+library(caret)
+
+set.seed(42)
+
+train_idx <- createDataPartition(df1$Work_Earn_Money_1, p = 0.8, list = FALSE)
+train <- df1[train_idx,]
+test <- df1[-train_idx,] 
+
+
+# Split the dataset into training and testing sets
+X_train <- df1[train_idx, -which(names(df1) == "Work_Earn_Money_1")]  # Exclude the target variable from the training set
+y_train <- df1[train_idx, "Work_Earn_Money_1"]   # Extract the target variable for the training set
+
+X_test <- df1[-train_idx, -which(names(df1) == "Work_Earn_Money_1")]  # Exclude the target variable from the testing set
+y_test <- df1[-train_idx, "Work_Earn_Money_1"]   # Extract the target variable for the testing set
+
+
+xgb_train <- xgb.DMatrix(data = as.matrix(X_train), label = y_train)
+xgb_test <- xgb.DMatrix(data = as.matrix(X_test), label = y_test)
+xgb_params <- list(
+  booster = "gbtree",
+  eta = 0.01,
+  max_depth = 2,
+  gamma = 4,
+  subsample = 0.75,
+  colsample_bytree = 1,
+  objective = "binary:logistic",
+  eval_metric = "mlogloss",
+  num_class = length(levels(df1$D1A_1V1L))
+)
+
+xgb_model <- xgb.train(
+  params = xgb_params,
+  data = xgb_train,
+  nrounds = 5000,
+  verbose = 1
+)
+xgb_model
+```
+
+```{r}
+# Make predictions on the test set
+predictions <- predict(xgb_model, xgb_test)
+
+# Convert probabilities to class labels, assign greater than 0.5 to Positive
+pred_classes <- ifelse(predictions > 0.5, "Positive", "Negative")
+
+# Create the confusion matrix
+cm <- table(Actual = test$Work_Earn_Money_1, Predicted = pred_classes)
+
+# Confusion Matrix
+print(cm)
+
+```
+
+```{r}
+
+# Calculate True Positives (TP), True Negatives (TN), False Positives (FP), False Negatives (FN)
+TP <- 319
+TN <- 58
+FP <- 16
+FN <- 7
+
+# Calculate accuracy
+accuracy <- (TP + TN) / sum(cm)
+
+# Calculate precision
+precision <- TP / (TP + FP)
+
+# Calculate recall (also called sensitivity)
+recall <- TP / (TP + FN)
+
+# Calculate F1 score
+F1 <- 2 * (precision * recall) / (precision + recall)
+
+
+#Specificity
+# Calculate specificity
+specificity <- (TN / (TN + FP))
+
+# Print the metrics
+cat("Accuracy:", accuracy, "\n")
+cat("Precision:", precision, "\n")
+cat("Recall:", recall, "\n")
+cat("F1 Score:", F1, "\n")
+
+cat("Specificity:", specificity)
+```
+
+
+
+
+
+```{r}
+#| vscode: {languageId: r}
+library(pROC)
+
+pred_probs <- predict(xgb_model, xgb_test)
+# Compute ROC curve
+
+roc_curve_xg <- roc(y_test, pred_probs)
+
+auc_xg <- round(auc(roc_curve_xg), 2)
+
+# Add AUC
+auc_lr <- paste("Logistic Regression,", auc_lr)
+auc_lasso <- paste("Lasso AUC,", auc_lasso)
+auc_elastic <- paste("Elastic AUC,", auc_elastic)
+auc_decision <- paste("Decision Tree with Hyperparameter \nTuning,", auc_decision)
+auc_random <- paste("Random Forest,", auc_random)
+auc_xg <- paste("XG Boost AUC,", auc_xg)
+
+# Including Prof Nakul's comment to adjust x-axis correctly
+#ggroc(roc_curve_lr, legacy.axes = T)
+
+# Plot ROC curve
+plot(roc_curve_lr, legacy.axes = T, main = "Comparison of ROC Curves", col = "#597fd2")
+plot(roc_curve_lasso, legacy.axes = T, main = "Comparison of ROC Curves", col = "#ec5f4c", lwd = 2, add=TRUE)
+plot(roc_curve_elastic, legacy.axes = T, main = "Comparison of ROC Curves", col = "#ffc929", add=TRUE)
+plot(roc_curve_random, legacy.axes = T, main = "Comparison of ROC Curves", col = "#006f3c", add=TRUE)
+plot(roc_curve_xg, legacy.axes = T, main = "Comparison of ROC Curves", col = "#ff0090", add=TRUE)
+plot(roc_curve_decision, legacy.axes = T, main = "Comparison of ROC Curves", col = "#6a4477", add=TRUE)
+
+
+# Add Legend
+legend("bottomright", title="AUC Values", legend = c(auc_lr, auc_lasso, auc_elastic, auc_random, auc_xg,  auc_decision), col = c("#597fd2", "#ec5f4c", "#ffc929", "#006f3c", "#ff0090", "#7d1189"), lty = 1, lwd = 2, bg = rgb(1, 1, 1, alpha = 0.7))
+
+
+```
+
+
+
+## XG Boost Tree Plot
+
+```{r}
+
+# load libraries
+library(xgboost)
+library(caret)
+library(dplyr)
+library(DiagrammeR)
+
+
+# plot the first tree
+tree_plot <- xgb.plot.tree(model = xgb_model, trees = 3)
+tree_plot
+
+```
+
+```{r}
+# create plot object of XGBoost tree
+tree_plot <- xgb.plot.tree(model = xgb_model, trees = 3, plot_width = 1000, 
+                           plot_height = 1000, render = FALSE)
+
+# export plot object to file
+export_graph(tree_plot, "xgboost_tree_plot.pdf", width = 1000, height = 1000)
+
+roc_curve <- roc(y_test, pred_probs)
+
+# Plot ROC curve
+plot(roc_curve, main = "ROC Curve", col = "blue")
+
+auc_value <- auc(roc_curve)
+cat(sprintf("AUC: %f", auc_value))
+
+```
+## Variable Importance for XGBoost
+```{r}
+#| vscode: {languageId: r}
+
+# Get variable importance
+importance <- xgb.importance(model = xgb_model)
+
+# Print the variable importance
+print(importance)
+```
