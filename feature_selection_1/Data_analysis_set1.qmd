@@ -11,20 +11,51 @@ library(glmnet)
 library(ggplot2)
 library(dplyr)
 library(reshape2)
+library(treemap)
 options(warn = -1)
 df <- read.csv("/Users/ishaanbabbar/dsan5300_project/new-cleaned_data-01.csv")
+
+df <- df %>%
+  rename(
+    Household_num = HHNO,
+    Business_ID = BEM_ID,
+    Business_Year1 = E3A,
+    Business_Year1_Closed = E4A,
+    Internal_Migration_Year1 = G1_4S1,
+    Natural_Disaster_Year1 = P10_2A,
+    Land_Hold_Year1 = P1A_6A,
+    Recent_Flood = P12_1,
+    Flood_Depth = P12_2,
+    Land_Hold_Unchanged = P4_2,
+    Land_Hold_Location = P1A_7A1A,
+    Internal_Migration_Expense = G1_5A1S1
+  )
 
 
 selected_df <- df %>% select(TMEM, P5_1, J2_1, J2_14, J1AB, T2, Q1_1, Q1_3, Q1_5, Q1_13)
 selected_df[is.na(selected_df)] <- 0.01
 
+selected_df <- selected_df %>%
+  rename(
+    Total_Household = TMEM,
+    Land_Hold_Aquaculture = P5_1,
+    Has_Light = J2_1,
+    Has_Generator = J2_14,
+    Use_Firewood = J1AB,
+    Government_Effectiveness = T2,
+    Temperature_Change = Q1_1,
+    Rainfall_Change = Q1_3,
+    Flood_Change = Q1_5,
+    Fish_in_Water_Change = Q1_13
+  )
+
+
 df_plot <- melt(df)
-ggplot(df_plot, aes(value)) + 
-  geom_histogram(binwidth = 0.5) +
-  facet_wrap(~ variable, scales = "free") + 
-  labs(title = "Data before Feature Selection") + theme(plot.title = element_text(size = 25))
+treemap(df_plot, index = c("variable", "variable"), vSize = "value", title = "Dataset before Feature selection",  palette = "Blues")
 
 selected_df_plot <- melt(selected_df)
+treemap(selected_df_plot, index = c("variable", "variable"), vSize = "value", title = "Dataset after Feature selection",  palette = "Blues")
+
 ggplot(selected_df_plot, aes(value)) +
   geom_histogram(binwidth = 0.5) +
   facet_wrap(~ variable, scales = "free") +
@@ -34,22 +65,22 @@ ggplot(selected_df_plot, aes(value)) +
 
 ```{r}
 # EDA analysis for feature selection 
-corr_matrix <- cor(selected_df[, c("TMEM", "P5_1", "J2_1", "J2_14", "J1AB", "T2", "Q1_1", "Q1_3", "Q1_5", "Q1_13")])
+corr_matrix <- cor(selected_df[, c("Total_Household", "Land_Hold_Aquaculture", "Has_Light", "Has_Generator", "Use_Firewood", "Government_Effectiveness", "Temperature_Change", "Rainfall_Change", "Flood_Change", "Fish_in_Water_Change")])
 
 library(corrplot)
 corrplot(corr_matrix, method = "color", type = "upper", tl.col = "black")
 
 filtered_df <- selected_df %>%
-  filter(Q1_1 != 0.01 & Q1_3 != 0.01)
+  filter(Temperature_Change != 0.01 & Rainfall_Change != 0.01)
 
 Q1_1_labels <- c("Decrease", "Increase", "No change", "Not Present")
 
 # Convert Q1_1 to a factor with custom labels
-filtered_df$Q1_1 <- factor(filtered_df$Q1_1, levels = c(1,2,3,9) , labels = Q1_1_labels)
+filtered_df$Temperature_Change <- factor(filtered_df$Temperature_Change, levels = c(1,2,3,9) , labels = Q1_1_labels)
 
-filtered_df$Q1_3 <- factor(filtered_df$Q1_3, levels = c(1,2,3,9) , labels = Q1_1_labels)
+filtered_df$Rainfall_Change <- factor(filtered_df$Rainfall_Change, levels = c(1,2,3,9) , labels = Q1_1_labels)
 
-ggplot(filtered_df, aes(x = factor(Q1_1), fill = factor(Q1_3))) + geom_bar(position = "stack") + labs(x = "Temperature", y = "Responses", title = "Perceived Eniromental Change between Temperature and Rainfall") + scale_fill_discrete(name = "Raifall During other seasons") + theme_minimal()
+ggplot(filtered_df, aes(x = factor(Temperature_Change), fill = factor(Rainfall_Change))) + geom_bar(position = "stack") + labs(x = "Temperature", y = "Responses", title = "Perceived Eniromental Change between Temperature and Rainfall") + scale_fill_discrete(name = "Raifall During other seasons") + theme_minimal()
 ```
 
 ```{r}
