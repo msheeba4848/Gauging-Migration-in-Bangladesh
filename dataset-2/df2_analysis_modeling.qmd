@@ -1,6 +1,8 @@
 ---
-title: Data 2
-format: html
+title: 'Data 2 : Analysis and Modeling'
+format:
+  html:
+    embed-resources: true
 editor: visual
 jupyter: ir
 ---
