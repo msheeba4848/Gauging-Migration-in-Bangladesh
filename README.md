@@ -52,3 +52,9 @@ Future work could extend this approach to other regions affected by climate chan
 - Carrico, A. R., & Donato, K. (2019). *Extreme weather and migration: evidence from Bangladesh*. *Population and Environment*, 41(1), 1–31. [DOI:10.1007/s11111-019-00322-9](https://doi.org/10.1007/s11111-019-00322-9)
 - PresentationGo. (2024). *Urban Sunset: Custom Color Palette for PowerPoint*. [Link](https://www.presentationgo.com/presentation/urban-sunset-custom-color-palette-for-powerpoint/)
 
+---
+
+## License
+
+This project is licensed under an **All Rights Reserved** license. Unauthorized use, distribution, or modification of the code is strictly prohibited. For inquiries or permission requests, please contact [sm3924@georgetown.edu or msheeba00@gmail.com].
+
